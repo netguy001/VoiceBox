@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piper TTS Studio</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f8f8;
+            --text-primary: #000000;
+            --text-secondary: #666666;
+            --border-color: #e0e0e0;
+            --accent-color: #000000;
+            --accent-hover: #2a2a2a;
+        }
+
+        body.theme-dark {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #999999;
+            --border-color: #2a2a2a;
+            --accent-color: #ffffff;
+            --accent-hover: #e0e0e0;
+        }
+
+        body.theme-blue {
+            --bg-primary: #f0f4ff;
+            --bg-secondary: #e6edff;
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a5568;
+            --border-color: #c7d2fe;
+            --accent-color: #4f46e5;
+            --accent-hover: #4338ca;
+        }
+
+        body.theme-green {
+            --bg-primary: #f0fdf4;
+            --bg-secondary: #dcfce7;
+            --text-primary: #14532d;
+            --text-secondary: #15803d;
+            --border-color: #bbf7d0;
+            --accent-color: #16a34a;
+            --accent-hover: #15803d;
+        }
+
+        body.theme-purple {
+            --bg-primary: #faf5ff;
+            --bg-secondary: #f3e8ff;
+            --text-primary: #4c1d95;
+            --text-secondary: #6b21a8;
+            --border-color: #e9d5ff;
+            --accent-color: #9333ea;
+            --accent-hover: #7e22ce;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: all 0.3s;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 95%;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 25px;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-size: 36px;
+            font-weight: 300;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .theme-selector {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 6px;
+            color: var(--text-primary);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 25px;
+        }
+
+        .section-full {
+            grid-column: 1 / -1;
+        }
+
+        .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        select, input[type="text"], textarea, button {
+            font-family: inherit;
+            font-size: 14px;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            transition: all 0.3s;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        select:focus, input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        select { flex: 1; cursor: pointer; }
+
+        .btn-secondary {
+            background: var(--bg-primary);
+            cursor: pointer;
+            padding: 12px 20px;
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover { background-color: var(--border-color); }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+            background: var(--border-color);
+            border: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            cursor: pointer;
+            background: var(--accent-color);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            background: var(--accent-color);
+        }
+
+        .value-display {
+            font-weight: 600;
+            min-width: 50px;
+            text-align: right;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .checkboxes {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--accent-color);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 180px;
+            resize: vertical;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .char-count {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-align: right;
+            margin-top: 8px;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn-primary {
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            background-color: var(--accent-color);
+            color: var(--bg-primary);
+            border-color: var(--accent-color);
+            font-size: 16px;
+            padding: 16px;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .progress {
+            height: 6px;
+            background-color: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--accent-color);
+            animation: progress 1.5s ease-in-out infinite;
+        }
+
+        @keyframes progress {
+            0% { width: 0%; margin-left: 0%; }
+            50% { width: 50%; margin-left: 25%; }
+            100% { width: 0%; margin-left: 100%; }
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background-color: var(--bg-primary);
+            margin: 10% auto;
+            padding: 30px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            margin-bottom: 25px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-modal {
+            padding: 10px 24px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-modal-primary {
+            background-color: var(--accent-color);
+            color: var(--bg-primary);
+            border-color: var(--accent-color);
+        }
+
+        .btn-modal-primary:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-modal-secondary {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .btn-modal-secondary:hover {
+            background-color: var(--border-color);
+        }
+
+        .audio-preview {
+            margin: 20px 0;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .audio-preview audio {
+            width: 100%;
+            margin: 15px 0;
+        }
+
+        .file-path {
+            font-family: monospace;
+            font-size: 12px;
+            background: var(--bg-primary);
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            word-break: break-all;
+            color: var(--text-secondary);
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--accent-color);
+            color: var(--bg-primary);
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 2000;
+            animation: slideInRight 0.3s;
+            display: none;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        .outputs-section {
+            margin-top: 30px;
+        }
+
+        .output-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .output-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .output-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .output-name {
+            font-size: 13px;
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+
+        .output-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            cursor: pointer;
+            color: var(--text-primary);
+            flex: 1;
+        }
+
+        .btn-small:hover {
+            background-color: var(--accent-color);
+            color: var(--bg-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">Piper TTS Studio</h1>
+            <div class="header-controls">
+                <select class="theme-selector" onchange="changeTheme(this.value)">
+                    <option value="light">Light Theme</option>
+                    <option value="dark">Dark Theme</option>
+                    <option value="blue">Blue Theme</option>
+                    <option value="green">Green Theme</option>
+                    <option value="purple">Purple Theme</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="section">
+                <div class="section-label">Voice Model</div>
+                <div class="input-group">
+                    <select id="voiceSelect"><option value="">Loading voices...</option></select>
+                    <button class="btn-secondary" onclick="refreshVoices()">↻</button>
+                    <button class="btn-secondary" onclick="openVoiceDownloads()">Get Voices</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-label">Speech Settings</div>
+                <div class="controls-grid">
+                    <div class="control-item">
+                        <label class="control-label">Speed</label>
+                        <div class="slider-container">
+                            <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateSlider('speed')">
+                            <span class="value-display" id="speedValue">1.0x</span>
+                        </div>
+                    </div>
+                    <div class="control-item">
+                        <label class="control-label">Pause</label>
+                        <div class="slider-container">
+                            <input type="range" id="pauseSlider" min="0.0" max="1.0" step="0.1" value="0.2" oninput="updateSlider('pause')">
+                            <span class="value-display" id="pauseValue">0.2s</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section section-full">
+                <div class="section-label">Audio Enhancement</div>
+                <div class="checkboxes">
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="noiseReduction" checked>
+                        <span>Noise Reduction</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="normalize" checked>
+                        <span>Normalize Volume</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" id="clarity" checked>
+                        <span>Enhance Clarity</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="section section-full">
+                <div class="section-label">Text to Convert</div>
+                <textarea id="textInput" placeholder="Enter text to convert to speech..."></textarea>
+                <div class="char-count" id="charCount">0 characters</div>
+                
+                <div class="button-group">
+                    <button class="btn-primary" id="generateBtn" onclick="generateSpeech()">Generate Speech</button>
+                </div>
+                <div class="progress" id="progress"><div class="progress-bar"></div></div>
+            </div>
+        </div>
+
+        <div class="outputs-section section">
+            <div class="section-label">Generated Files</div>
+            <div class="output-grid" id="outputList">
+                <div style="padding: 40px; text-align: center; color: var(--text-secondary); grid-column: 1 / -1;">No files yet</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">✅ Speech Generated Successfully!</div>
+            <div class="modal-body">
+                <div class="audio-preview">
+                    <audio id="previewAudio" controls></audio>
+                    <div class="file-path" id="filePath"></div>
+                </div>
+                <p style="margin-top: 15px;">Your audio file has been generated and saved.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal btn-modal-secondary" onclick="closeModal()">Close</button>
+                <button class="btn-modal btn-modal-primary" onclick="downloadAudio()">Download</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let currentAudioFile = null;
+        let currentFilePath = null;
+
+        document.getElementById('textInput').addEventListener('input', updateCharCount);
+        refreshVoices();
+        loadOutputs();
+
+        function changeTheme(theme) {
+            document.body.className = theme === 'light' ? '' : `theme-${theme}`;
+            localStorage.setItem('theme', theme);
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme !== 'light') {
+            document.body.className = `theme-${savedTheme}`;
+            document.querySelector('.theme-selector').value = savedTheme;
+        }
+
+        function updateCharCount() {
+            const text = document.getElementById('textInput').value;
+            document.getElementById('charCount').textContent = `${text.length} characters`;
+        }
+
+        function updateSlider(type) {
+            if (type === 'speed') {
+                const value = document.getElementById('speedSlider').value;
+                document.getElementById('speedValue').textContent = `${value}x`;
+            } else if (type === 'pause') {
+                const value = document.getElementById('pauseSlider').value;
+                document.getElementById('pauseValue').textContent = `${value}s`;
+            }
+        }
+
+        async function refreshVoices() {
+            try {
+                const response = await fetch('/api/voices');
+                const data = await response.json();
+                
+                const select = document.getElementById('voiceSelect');
+                select.innerHTML = '<option value="">Select a voice...</option>';
+                
+                data.voices.forEach(voice => {
+                    const option = document.createElement('option');
+                    option.value = voice.path;
+                    option.textContent = voice.name;
+                    select.appendChild(option);
+                });
+
+                if (data.voices.length === 0) {
+                    showToast('No voice models found. Click "Get Voices" to download.', 3000);
+                }
+            } catch (error) {
+                showToast('Cannot connect to server!', 3000);
+            }
+        }
+
+        function openVoiceDownloads() {
+            window.open('https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US', '_blank');
+            showToast('Download .onnx and .onnx.json files, then click refresh', 5000);
+        }
+
+        function showToast(message, duration) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        }
+
+        async function generateSpeech() {
+            const text = document.getElementById('textInput').value.trim();
+            const voiceSelect = document.getElementById('voiceSelect');
+            
+            if (!text) { alert('Please enter some text!'); return; }
+            if (!voiceSelect.value) { alert('Please select a voice!'); return; }
+
+            const generateBtn = document.getElementById('generateBtn');
+            const progress = document.getElementById('progress');
+
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+            progress.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        voice_path: voiceSelect.value,
+                        speed: parseFloat(document.getElementById('speedSlider').value),
+                        pause: parseFloat(document.getElementById('pauseSlider').value),
+                        noise_reduction: document.getElementById('noiseReduction').checked,
+                        normalize: document.getElementById('normalize').checked,
+                        enhance_clarity: document.getElementById('clarity').checked
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentAudioFile = data.filename;
+                    currentFilePath = data.path;
+                    progress.style.display = 'none';
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Generate Speech';
+                    
+                    showSuccessModal(data.filename, data.path);
+                    loadOutputs();
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                progress.style.display = 'none';
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Generate Speech';
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        function showSuccessModal(filename, filepath) {
+            const modal = document.getElementById('successModal');
+            const audio = document.getElementById('previewAudio');
+            const pathDiv = document.getElementById('filePath');
+            
+            audio.src = `/api/audio/${filename}`;
+            pathDiv.textContent = filepath;
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('successModal').style.display = 'none';
+        }
+
+        function downloadAudio() {
+            if (currentAudioFile) {
+                const a = document.createElement('a');
+                a.href = `/api/audio/${currentAudioFile}`;
+                a.download = currentAudioFile;
+                a.click();
+                showToast('✅ Download started successfully!', 3000);
+                setTimeout(closeModal, 1000);
+            }
+        }
+
+        async function loadOutputs() {
+            try {
+                const response = await fetch('/api/outputs');
+                const data = await response.json();
+                
+                const outputList = document.getElementById('outputList');
+                
+                if (data.files.length === 0) {
+                    outputList.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary); grid-column: 1 / -1;">No files yet</div>';
+                } else {
+                    outputList.innerHTML = '';
+                    data.files.forEach(file => {
+                        const card = document.createElement('div');
+                        card.className = 'output-card';
+                        card.innerHTML = `
+                            <div class="output-name">${file.filename}</div>
+                            <div class="output-actions">
+                                <button class="btn-small" onclick="playFile('${file.filename}')">▶ Play</button>
+                                <button class="btn-small" onclick="downloadFile('${file.filename}')">⬇ Download</button>
+                            </div>
+                        `;
+                        outputList.appendChild(card);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load outputs:', error);
+            }
+        }
+
+        function playFile(filename) {
+            const audio = new Audio(`/api/audio/${filename}`);
+            audio.play();
+            showToast('Playing: ' + filename, 2000);
+        }
+
+        function downloadFile(filename) {
+            const a = document.createElement('a');
+            a.href = `/api/audio/${filename}`;
+            a.download = filename;
+            a.click();
+            showToast('✅ Download started!', 2000);
+        }
+
+        setInterval(loadOutputs, 10000);
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('successModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>

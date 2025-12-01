@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piper TTS Studio</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #ffffff;
+            color: #000000;
+            min-height: 100vh;
+        }
+        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 30px;
+            border-bottom: 1px solid #e8e8e8;
+            margin-bottom: 40px;
+        }
+        .title { font-size: 32px; font-weight: 300; letter-spacing: -0.5px; color: #000000; }
+        .mode-toggle {
+            background: #f8f8f8;
+            border: 1px solid #e0e0e0;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 4px;
+            transition: all 0.3s;
+            color: #000000;
+        }
+        .mode-toggle:hover { background-color: #f0f0f0; }
+        .section { margin-bottom: 30px; }
+        .section-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            color: #666666;
+        }
+        .input-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        select, input[type="text"], textarea, button {
+            font-family: inherit;
+            font-size: 14px;
+            padding: 12px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+        select, input[type="text"], textarea {
+            background-color: #fafafa;
+            color: #000000;
+        }
+        select:focus, input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #c0c0c0;
+            background-color: #ffffff;
+        }
+        select { flex: 1; cursor: pointer; }
+        .btn-secondary {
+            background: #f8f8f8;
+            cursor: pointer;
+            padding: 12px 20px;
+            border-color: #e0e0e0;
+            color: #000000;
+        }
+        .btn-secondary:hover { background-color: #f0f0f0; }
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .control-item { display: flex; flex-direction: column; gap: 8px; }
+        .control-label { font-size: 13px; color: #666666; }
+        .slider-container { display: flex; align-items: center; gap: 12px; }
+        input[type="range"] {
+            flex: 1;
+            height: 4px;
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+            background: #e8e8e8;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            cursor: pointer;
+            background: #000000;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            background: #000000;
+        }
+        .value-display {
+            font-weight: 600;
+            min-width: 45px;
+            text-align: right;
+            font-size: 13px;
+            color: #000000;
+        }
+        .checkboxes { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: #000000;
+        }
+        input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            resize: vertical;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .char-count {
+            font-size: 12px;
+            color: #999999;
+            text-align: right;
+            margin-top: 5px;
+        }
+        input[type="text"] { width: 100%; }
+        .button-group {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn-primary {
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            background-color: #000000;
+            color: #ffffff;
+            border-color: #000000;
+        }
+        .btn-primary:hover:not(:disabled) { background-color: #2a2a2a; }
+        .btn-play {
+            cursor: pointer;
+            font-weight: 600;
+            background-color: #f8f8f8;
+            border-color: #e0e0e0;
+            color: #000000;
+        }
+        .btn-play:hover:not(:disabled) { background-color: #f0f0f0; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            border: 1px solid #e8e8e8;
+            text-align: center;
+            background-color: #fafafa;
+            color: #000000;
+        }
+        .status.success {
+            border-color: #d1fae5;
+            background-color: #f0fdf4;
+            color: #065f46;
+        }
+        .status.error {
+            border-color: #fecaca;
+            background-color: #fef2f2;
+            color: #991b1b;
+        }
+        .progress {
+            height: 4px;
+            background-color: #f0f0f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 15px;
+            display: none;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #000000;
+            animation: progress 1.5s ease-in-out infinite;
+        }
+        @keyframes progress {
+            0% { width: 0%; margin-left: 0%; }
+            50% { width: 50%; margin-left: 25%; }
+            100% { width: 0%; margin-left: 100%; }
+        }
+        .outputs-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #e8e8e8;
+        }
+        .output-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+            background-color: #fafafa;
+        }
+        .output-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+        .output-item:hover { background-color: #f0f0f0; }
+        .output-item:last-child { border-bottom: none; }
+        .output-name { font-size: 13px; color: #000000; }
+        .output-actions { display: flex; gap: 8px; }
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            background: #f8f8f8;
+            border: 1px solid #e0e0e0;
+            border-radius: 3px;
+            cursor: pointer;
+            color: #000000;
+        }
+        .btn-small:hover { background-color: #f0f0f0; }
+        @media (max-width: 768px) {
+            .controls-grid { grid-template-columns: 1fr; }
+            .button-group { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">Piper TTS Studio</h1>
+            <button class="mode-toggle" onclick="toggleMode()">
+                <span id="mode-icon">🌙 Dark Mode</span>
+            </button>
+        </div>
+
+        <div class="section">
+            <div class="section-label">Voice Model</div>
+            <div class="input-group">
+                <select id="voiceSelect"><option value="">Loading voices...</option></select>
+                <button class="btn-secondary" onclick="refreshVoices()">↻</button>
+                <button class="btn-secondary" onclick="openVoiceDownloads()">Get Voices</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-label">Speech Settings</div>
+            <div class="controls-grid">
+                <div class="control-item">
+                    <label class="control-label">Speed</label>
+                    <div class="slider-container">
+                        <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateSlider('speed')">
+                        <span class="value-display" id="speedValue">1.0x</span>
+                    </div>
+                </div>
+                <div class="control-item">
+                    <label class="control-label">Pause</label>
+                    <div class="slider-container">
+                        <input type="range" id="pauseSlider" min="0.0" max="1.0" step="0.1" value="0.2" oninput="updateSlider('pause')">
+                        <span class="value-display" id="pauseValue">0.2s</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-label">Audio Enhancement</div>
+            <div class="checkboxes">
+                <label class="checkbox-item">
+                    <input type="checkbox" id="noiseReduction" checked>
+                    <span>Noise Reduction</span>
+                </label>
+                <label class="checkbox-item">
+                    <input type="checkbox" id="normalize" checked>
+                    <span>Normalize Volume</span>
+                </label>
+                <label class="checkbox-item">
+                    <input type="checkbox" id="clarity" checked>
+                    <span>Enhance Clarity</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-label">Text to Convert</div>
+            <textarea id="textInput" placeholder="Enter text to convert to speech..."></textarea>
+            <div class="char-count" id="charCount">0 characters</div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" id="generateBtn" onclick="generateSpeech()">Generate Speech</button>
+            <button class="btn-play" id="playBtn" onclick="togglePlayback()" disabled>▶ Play</button>
+        </div>
+
+        <div class="progress" id="progress"><div class="progress-bar"></div></div>
+        <div class="status" id="status">Ready to generate speech</div>
+
+        <div class="outputs-section">
+            <div class="section-label">Generated Files (in /output folder)</div>
+            <div class="output-list" id="outputList">
+                <div style="padding: 20px; text-align: center; color: #999;">No files yet</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentAudioFile = null;
+        let currentAudio = null;
+        let isPlaying = false;
+        let darkMode = false;
+
+        document.getElementById('textInput').addEventListener('input', updateCharCount);
+        refreshVoices();
+        loadOutputs();
+
+        function toggleMode() {
+            darkMode = !darkMode;
+            document.body.style.backgroundColor = darkMode ? '#0a0a0a' : '#ffffff';
+            document.body.style.color = darkMode ? '#ffffff' : '#000000';
+            document.getElementById('mode-icon').textContent = darkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+        }
+
+        function updateCharCount() {
+            const text = document.getElementById('textInput').value;
+            document.getElementById('charCount').textContent = `${text.length} characters`;
+        }
+
+        function updateSlider(type) {
+            if (type === 'speed') {
+                const value = document.getElementById('speedSlider').value;
+                document.getElementById('speedValue').textContent = `${value}x`;
+            } else if (type === 'pause') {
+                const value = document.getElementById('pauseSlider').value;
+                document.getElementById('pauseValue').textContent = `${value}s`;
+            }
+        }
+
+        async function refreshVoices() {
+            try {
+                const response = await fetch('/api/voices');
+                const data = await response.json();
+                
+                const select = document.getElementById('voiceSelect');
+                select.innerHTML = '<option value="">Select a voice...</option>';
+                
+                data.voices.forEach(voice => {
+                    const option = document.createElement('option');
+                    option.value = voice.path;
+                    option.textContent = voice.name;
+                    select.appendChild(option);
+                });
+
+                if (data.voices.length > 0) {
+                    showStatus(`Found ${data.voices.length} voice model(s)`, 'success');
+                } else {
+                    showStatus('No voice models found. Click "Get Voices" to download.', 'info');
+                }
+            } catch (error) {
+                showStatus('Cannot connect to server!', 'error');
+            }
+        }
+
+        function openVoiceDownloads() {
+            window.open('https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US', '_blank');
+            alert('Download .onnx and .onnx.json files to the piper_models folder, then click refresh (↻)');
+        }
+
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status';
+            if (type === 'success') status.classList.add('success');
+            if (type === 'error') status.classList.add('error');
+        }
+
+        async function generateSpeech() {
+            const text = document.getElementById('textInput').value.trim();
+            const voiceSelect = document.getElementById('voiceSelect');
+            
+            if (!text) { alert('Please enter some text!'); return; }
+            if (!voiceSelect.value) { alert('Please select a voice!'); return; }
+
+            const generateBtn = document.getElementById('generateBtn');
+            const playBtn = document.getElementById('playBtn');
+            const progress = document.getElementById('progress');
+
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+            progress.style.display = 'block';
+            showStatus('Generating speech with Piper TTS...', 'info');
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        voice_path: voiceSelect.value,
+                        speed: parseFloat(document.getElementById('speedSlider').value),
+                        pause: parseFloat(document.getElementById('pauseSlider').value),
+                        noise_reduction: document.getElementById('noiseReduction').checked,
+                        normalize: document.getElementById('normalize').checked,
+                        enhance_clarity: document.getElementById('clarity').checked
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentAudioFile = data.filename;
+                    progress.style.display = 'none';
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Generate Speech';
+                    playBtn.disabled = false;
+                    showStatus(`Speech generated! Saved to output/${data.filename}`, 'success');
+                    loadOutputs();
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                progress.style.display = 'none';
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Generate Speech';
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        function togglePlayback() {
+            if (isPlaying) { stopPlayback(); } else { playAudio(); }
+        }
+
+        function playAudio() {
+            if (!currentAudioFile) { alert('Please generate speech first!'); return; }
+            if (currentAudio) { currentAudio.pause(); }
+
+            currentAudio = new Audio(`/api/audio/${currentAudioFile}`);
+            const playBtn = document.getElementById('playBtn');
+            
+            currentAudio.onplay = () => {
+                isPlaying = true;
+                playBtn.textContent = '⏸ Stop';
+                showStatus('Playing audio...', 'info');
+            };
+            currentAudio.onended = () => {
+                isPlaying = false;
+                playBtn.textContent = '▶ Play';
+                showStatus('Playback finished', 'success');
+            };
+            currentAudio.onerror = () => {
+                isPlaying = false;
+                playBtn.textContent = '▶ Play';
+                showStatus('Playback error', 'error');
+            };
+
+            currentAudio.play();
+        }
+
+        function stopPlayback() {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            }
+            isPlaying = false;
+            document.getElementById('playBtn').textContent = '▶ Play';
+            showStatus('Playback stopped', 'info');
+        }
+
+        async function loadOutputs() {
+            try {
+                const response = await fetch('/api/outputs');
+                const data = await response.json();
+                
+                const outputList = document.getElementById('outputList');
+                
+                if (data.files.length === 0) {
+                    outputList.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No files yet</div>';
+                } else {
+                    outputList.innerHTML = '';
+                    data.files.forEach(file => {
+                        const item = document.createElement('div');
+                        item.className = 'output-item';
+                        item.innerHTML = `
+                            <span class="output-name">${file.filename}</span>
+                            <div class="output-actions">
+                                <button class="btn-small" onclick="playFile('${file.filename}')">▶ Play</button>
+                                <button class="btn-small" onclick="downloadFile('${file.filename}')">⬇ Download</button>
+                            </div>
+                        `;
+                        outputList.appendChild(item);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load outputs:', error);
+            }
+        }
+
+        function playFile(filename) {
+            currentAudioFile = filename;
+            document.getElementById('playBtn').disabled = false;
+            playAudio();
+        }
+
+        function downloadFile(filename) {
+            window.open(`/api/audio/${filename}`, '_blank');
+        }
+
+        setInterval(loadOutputs, 5000);
+    </script>
+</body>
+</html>
