@@ -1,12 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piper TTS Studio</title>
+    <title>VoiceBox</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         :root {
             --bg-primary: #ffffff;
             --bg-secondary: #f8f8f8;
@@ -137,7 +142,10 @@
             margin-bottom: 15px;
         }
 
-        select, input[type="text"], textarea, button {
+        select,
+        input[type="text"],
+        textarea,
+        button {
             font-family: inherit;
             font-size: 14px;
             padding: 12px 16px;
@@ -148,12 +156,17 @@
             color: var(--text-primary);
         }
 
-        select:focus, input[type="text"]:focus, textarea:focus {
+        select:focus,
+        input[type="text"]:focus,
+        textarea:focus {
             outline: none;
             border-color: var(--accent-color);
         }
 
-        select { flex: 1; cursor: pointer; }
+        select {
+            flex: 1;
+            cursor: pointer;
+        }
 
         .btn-secondary {
             background: var(--bg-primary);
@@ -163,7 +176,9 @@
             color: var(--text-primary);
         }
 
-        .btn-secondary:hover { background-color: var(--border-color); }
+        .btn-secondary:hover {
+            background-color: var(--border-color);
+        }
 
         .controls-grid {
             display: grid;
@@ -305,9 +320,20 @@
         }
 
         @keyframes progress {
-            0% { width: 0%; margin-left: 0%; }
-            50% { width: 50%; margin-left: 25%; }
-            100% { width: 0%; margin-left: 100%; }
+            0% {
+                width: 0%;
+                margin-left: 0%;
+            }
+
+            50% {
+                width: 50%;
+                margin-left: 25%;
+            }
+
+            100% {
+                width: 0%;
+                margin-left: 100%;
+            }
         }
 
         /* Modal Styles */
@@ -324,8 +350,13 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         .modal-content {
@@ -340,8 +371,15 @@
         }
 
         @keyframes slideDown {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .modal-header {
@@ -425,15 +463,22 @@
             color: var(--bg-primary);
             padding: 16px 24px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             z-index: 2000;
             animation: slideInRight 0.3s;
             display: none;
         }
 
         @keyframes slideInRight {
-            from { transform: translateX(400px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         .toast.show {
@@ -462,7 +507,7 @@
 
         .output-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .output-name {
@@ -495,10 +540,15 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
-            <h1 class="title">Piper TTS Studio</h1>
+            <h1 class="title">
+                <img src="/static/assets/images/1.png" alt="VoiceBox Logo"
+                    style="height: 40px; width: 40px; object-fit: contain; vertical-align: middle; margin-right: 2px; display: inline-block; filter: invert(0); background: white; border-radius: 8px; padding: 4px;">
+                VoiceBox
+            </h1>
             <div class="header-controls">
                 <select class="theme-selector" onchange="changeTheme(this.value)">
                     <option value="light">Light Theme</option>
@@ -514,7 +564,9 @@
             <div class="section">
                 <div class="section-label">Voice Model</div>
                 <div class="input-group">
-                    <select id="voiceSelect"><option value="">Loading voices...</option></select>
+                    <select id="voiceSelect">
+                        <option value="">Loading voices...</option>
+                    </select>
                     <button class="btn-secondary" onclick="refreshVoices()">↻</button>
                     <button class="btn-secondary" onclick="openVoiceDownloads()">Get Voices</button>
                 </div>
@@ -526,14 +578,16 @@
                     <div class="control-item">
                         <label class="control-label">Speed</label>
                         <div class="slider-container">
-                            <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateSlider('speed')">
+                            <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.1" value="1.0"
+                                oninput="updateSlider('speed')">
                             <span class="value-display" id="speedValue">1.0x</span>
                         </div>
                     </div>
                     <div class="control-item">
                         <label class="control-label">Pause</label>
                         <div class="slider-container">
-                            <input type="range" id="pauseSlider" min="0.0" max="1.0" step="0.1" value="0.2" oninput="updateSlider('pause')">
+                            <input type="range" id="pauseSlider" min="0.0" max="1.0" step="0.1" value="0.2"
+                                oninput="updateSlider('pause')">
                             <span class="value-display" id="pauseValue">0.2s</span>
                         </div>
                     </div>
@@ -562,18 +616,21 @@
                 <div class="section-label">Text to Convert</div>
                 <textarea id="textInput" placeholder="Enter text to convert to speech..."></textarea>
                 <div class="char-count" id="charCount">0 characters</div>
-                
+
                 <div class="button-group">
                     <button class="btn-primary" id="generateBtn" onclick="generateSpeech()">Generate Speech</button>
                 </div>
-                <div class="progress" id="progress"><div class="progress-bar"></div></div>
+                <div class="progress" id="progress">
+                    <div class="progress-bar"></div>
+                </div>
             </div>
         </div>
 
         <div class="outputs-section section">
             <div class="section-label">Generated Files</div>
             <div class="output-grid" id="outputList">
-                <div style="padding: 40px; text-align: center; color: var(--text-secondary); grid-column: 1 / -1;">No files yet</div>
+                <div style="padding: 40px; text-align: center; color: var(--text-secondary); grid-column: 1 / -1;">No
+                    files yet</div>
             </div>
         </div>
     </div>
@@ -638,10 +695,10 @@
             try {
                 const response = await fetch('/api/voices');
                 const data = await response.json();
-                
+
                 const select = document.getElementById('voiceSelect');
                 select.innerHTML = '<option value="">Select a voice...</option>';
-                
+
                 data.voices.forEach(voice => {
                     const option = document.createElement('option');
                     option.value = voice.path;
@@ -674,7 +731,7 @@
         async function generateSpeech() {
             const text = document.getElementById('textInput').value.trim();
             const voiceSelect = document.getElementById('voiceSelect');
-            
+
             if (!text) { alert('Please enter some text!'); return; }
             if (!voiceSelect.value) { alert('Please select a voice!'); return; }
 
@@ -708,7 +765,7 @@
                     progress.style.display = 'none';
                     generateBtn.disabled = false;
                     generateBtn.textContent = 'Generate Speech';
-                    
+
                     showSuccessModal(data.filename, data.path);
                     loadOutputs();
                 } else {
@@ -726,7 +783,7 @@
             const modal = document.getElementById('successModal');
             const audio = document.getElementById('previewAudio');
             const pathDiv = document.getElementById('filePath');
-            
+
             audio.src = `/api/audio/${filename}`;
             pathDiv.textContent = filepath;
             modal.style.display = 'block';
@@ -751,9 +808,9 @@
             try {
                 const response = await fetch('/api/outputs');
                 const data = await response.json();
-                
+
                 const outputList = document.getElementById('outputList');
-                
+
                 if (data.files.length === 0) {
                     outputList.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary); grid-column: 1 / -1;">No files yet</div>';
                 } else {
@@ -793,7 +850,7 @@
         setInterval(loadOutputs, 10000);
 
         // Close modal when clicking outside
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             const modal = document.getElementById('successModal');
             if (event.target == modal) {
                 closeModal();
@@ -801,4 +858,5 @@
         }
     </script>
 </body>
+
 </html>

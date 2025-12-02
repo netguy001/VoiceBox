@@ -1,4 +1,18 @@
 from flask import Flask, render_template, request, jsonify, send_from_directory
+import os
+
+app = Flask(__name__)
+
+# Your existing routes here...
+
+
+# Add this route for assets
+@app.route("/assets/<path:filename>")
+def serve_assets(filename):
+    return send_from_directory("assets", filename)
+
+
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
 import subprocess
 import os

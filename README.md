@@ -1,63 +1,96 @@
-# **Piper TTS Studio**
+# 🎙️ VoiceBox — Local Text-to-Speech Studio
 
-A fully offline text-to-speech interface powered by **Piper TTS**.
-No API keys. No cloud calls. No tracking.
-Just fast, local inference — running on your hardware.
+VoiceBox is a fully offline text-to-speech tool powered by Piper TTS, wrapped in a clean, lightweight Flask UI. No accounts. No API keys. No internet dependency. Just text → speech running locally on your machine.
 
----
+## ✨ Features
 
-## 🚀 What This Does
+- 🎤 Fully offline text-to-speech conversion
+- 🔊 Built-in voice model selector
+- ⚙️ Adjustable speed and pause timing
+- 🎧 Optional audio enhancements:
+  - Noise reduction
+  - Volume normalization
+  - Clarity enhancement
+- 🎛 Simple browser-based UI (Light/Dark themes)
+- 💾 Automatic file saving with timestamps
+- ⚡ Fast inference using Piper models
 
-* Convert text to natural-sounding speech locally
-* Switch between multiple voices (if models available)
-* Control speaking speed and pause timing
-* Enable audio enhancements (normalization, clarity, noise reduction)
-* Export generated audio for reuse
-* Runs entirely in the browser at: `http://localhost:5005`
+## 🖥️ Supported Platforms
 
-If you’re tired of cloud-locked TTS tools or overpriced subscriptions — this is your alternative.
+| OS | Status |
+|---|---|
+| Windows 10/11 | ✅ Tested |
+| Linux | ⚠ Works but not tested |
+| macOS (M1/M2) | ❓ Untested |
 
----
+## 🔧 Minimum System Requirements
 
-## 🧩 Tech Used
+| Component | Recommended |
+|---|---|
+| CPU | Any modern CPU (Intel i5 / Ryzen 5 or above) |
+| RAM | 4GB min (8GB recommended) |
+| Storage | ~200MB + space for downloaded models |
+| Python | 3.10+ |
 
-| Layer      | Tech                                                    |
-| ---------- | ------------------------------------------------------- |
-| Backend    | Python (FastAPI/Flask depending on your implementation) |
-| TTS Engine | Piper                                                   |
-| Frontend   | HTML + CSS + JS (lightweight UI)                        |
-| Extras     | FFmpeg (audio processing), Local model inference        |
+Works on low-end laptops too — Piper is lightweight compared to most neural TTS engines.
 
----
-
-## 📦 Folder Structure
+## 📂 Project Structure
 
 ```
-piper-tts-studio/
-│
-├── backend/
-│   ├── app.py
-│   ├── inference.py
-│   └── requirements.txt
-│
-├── templates/ (UI)
-├── piper_models/ (Not included — user downloads models)
-├── scripts/ (optional helpers)
+VoiceBox/
+├── output/                # Generated audio files
+├── piper_models/          # Piper .onnx / .json files
+├── static/                # UI assets
+├── templates/             # HTML UI
+├── app.py                 # Flask app
+├── tts.py                 # TTS logic wrapper
 └── README.md
 ```
 
----
+## 📦 Installation
 
-## 🎤 Models (IMPORTANT)
+You need Python 3.10+ installed.
 
-Models are **NOT included** because they're **huge** (multiple GB).
+### 1️⃣ Clone the project:
 
-To run this project, download models from:
+```bash
+git clone https://github.com/netguy001/Audiobox.git
+cd VoiceBox
+```
 
-* [https://github.com/rhasspy/piper](https://github.com/rhasspy/piper)
-* [https://huggingface.co/rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices)
+### 2️⃣ Create and activate a virtual environment (recommended):
 
-Place downloaded `.onnx` voice models here:
+```bash
+python -m venv venv
+.\venv\Scripts\activate
+```
+
+### 3️⃣ Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+## ▶️ Running the App
+
+```bash
+python app.py
+```
+
+The app will automatically open in your browser at:
+
+```
+http://localhost:5005
+```
+
+## 🎤 Downloading Voice Models
+
+Voice models are not included (they're big). Download from:
+
+- https://github.com/rhasspy/piper
+- https://huggingface.co/rhasspy/piper-voices
+
+Place downloaded `.onnx` and `.json` files here:
 
 ```
 piper_models/
@@ -66,74 +99,56 @@ piper_models/
 Example:
 
 ```
-piper_models/
- └── en_US-danny-low.onnx
+piper_models/en_US-danny-low.onnx
 ```
 
----
+## 🛠 Upcoming Features
 
-## ▶️ How to Run
-
-1. Install dependencies:
-
-```
-pip install -r backend/requirements.txt
-```
-
-2. Start the server:
-
-```
-python backend/app.py
-```
-
-3. Open the UI in your browser:
-
-```
-http://localhost:5005
-```
-
-That’s it.
-
----
-
-## 🔧 Optional (FFmpeg Required)
-
-Some enhancement features use FFmpeg.
-
-Install:
-
-* **Windows:** [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html)
-* **Linux:** `sudo apt install ffmpeg`
-* **Mac:** `brew install ffmpeg`
-
----
-
-## 🛠 Planned Improvements
-
-* 🔉 Emotion/style markers (SSML-like control)
-* 🎛 UI presets for voices & tonal options
-* 📦 One-click installer
-* 🧠 Model auto-downloader
-* 🎚 Voice mixing & chaining
-
----
+- 🔥 SSML-like markup support
+- 🎭 Voice emotion/style presets
+- 🌍 Multi-language UI
+- 🧱 Windows EXE build
+- 🚀 Auto model downloader
 
 ## 🤝 Contributing
 
-If you have voice models, improvements, UI fixes, or ideas — PRs are welcome.
-
----
+PRs, ideas, and UI improvements are welcome. If you break something and fix it — even better.
 
 ## 📄 License
 
-MIT — use it, break it, improve it, ship it.
+MIT — do whatever, just don't sue me.
 
----
+## 📸 Screenshots & Demos
+
+Check out the `ui_images/` folder for:
+- 🖼️ Application UI screenshots (light/dark themes)
+- 🖥️ Terminal/console output examples
+- 🎵 Sample generated audio output
+
+These will give you a quick preview of what VoiceBox looks like in action!
+
+## 🎬 Perfect for Content Creation
+
+VoiceBox is ideal for:
+- 🎥 YouTube explanation videos and tutorials
+- 🎙️ Podcast intros/outros
+- 📚 Audiobook narration
+- 🎮 Game voiceovers
+- 🔊 Accessibility tools
+
+**Need customization?** This tool is designed to be easily modified for your specific content creation workflow. Feel free to fork and adapt it to your needs!
+
+## 💬 Questions or Feedback?
+
+Have questions about functionality, customization, or how to integrate VoiceBox into your workflow? 
+
+**Contact me:**
+- Open an issue on GitHub
+- Reach out directly for collaboration or custom features
+
+I'm happy to help with implementation details, feature requests, or technical guidance!
 
 ## 👤 Author
 
-**Meganathan M**
-
-Backend • Cloud • AI-assisted Engineering
-GitHub: [https://github.com/netguy001](https://github.com/netguy001)
-
+**Meganathan M**  
+Cloud · AI · Automation
