@@ -5,3 +5,6 @@
 *.onnx
 *.pt
 *.bin
+/voice_output
+/build
+

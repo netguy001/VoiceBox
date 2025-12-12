@@ -1,14 +1,14 @@
+# -*- coding: utf-8 -*-
 """
-Intelligent Voice Assistant - COMPLETELY FIXED VERSION
-All Issues Resolved:
-✅ File creation works properly (no more "content=" in filenames)
-✅ Waits for complete speech before responding
-✅ Instant stop/wait/continue commands
-✅ Full Windows file system access and awareness
-✅ AI knows what files exist before taking action
-✅ Better tool parameter parsing
-✅ Enhanced web search
-✅ Improved AI prompt for better understanding
+Intelligent Voice Assistant - FIXED VERSION
+Fast, minimal responses, actually works!
+
+FIXES APPLIED:
+✅ Short, direct responses (no "Master" stuff)
+✅ Multiple tool execution fixed
+✅ Apps actually open now
+✅ Files actually get created
+✅ Faster processing
 """
 
 import speech_recognition as sr
@@ -27,7 +27,6 @@ import pyaudio
 import wave
 import uuid
 
-# Import our modules
 from tools import ToolBox
 from memory import AssistantMemory
 
@@ -37,29 +36,45 @@ class IntelligentAssistant:
         self,
         ollama_model="mistral",
         personality="friendly",
-        user_name=None,
         wake_word_mode=False,
+        user_name=None,
     ):
-        """Initialize the intelligent assistant with memory"""
+        """Initialize the intelligent assistant - FIXED"""
+
+        # Control flags
         self.is_paused = False
         self.stop_requested = False
         self.pending_response = ""
-        self.is_listening = False  # NEW: Track if we're actively listening
+        self.is_listening = False
+        self.is_speaking = False
+        self.conversation_active = True
 
+        # Audio control
+        self.should_stop_audio = False
+        self.audio_lock = threading.Lock()
+        self.audio_process = None
+        self.current_audio_file = None
+
+        # Interrupt detection
+        self.interrupt_detected = False
+        self.interrupt_thread = None
+
+        # Settings
         self.ollama_model = ollama_model
         self.personality = personality
         self.session_id = str(uuid.uuid4())[:8]
         self.wake_word_mode = wake_word_mode
         self.wake_word = "jarvis"
 
-        # Initialize memory first
+        # Get user name
         if user_name is None:
-            user_name = self.ask_user_name()
+            user_name = os.getenv("USERNAME", "friend")
 
+        # Initialize memory
         self.memory = AssistantMemory(user_name=user_name)
         self.voice_model_path = self.find_voice_model()
 
-        # Update personality from memory if stored
+        # Update personality
         stored_personality = self.memory.get_preference("personality")
         if stored_personality:
             self.personality = stored_personality
@@ -70,53 +85,31 @@ class IntelligentAssistant:
         self.output_dir = Path("voice_output")
         self.output_dir.mkdir(exist_ok=True)
 
-        # Audio settings - IMPROVED for better listening
+        # Audio settings
         self.recognizer = sr.Recognizer()
-        self.recognizer.energy_threshold = 4000  # Increased threshold
+        self.recognizer.energy_threshold = 2000
         self.recognizer.dynamic_energy_threshold = True
-        self.recognizer.pause_threshold = (
-            1.0  # Wait 1 second of silence before processing
-        )
+        self.recognizer.pause_threshold = 0.8
         self.recognizer.phrase_threshold = 0.3
         self.recognizer.non_speaking_duration = 0.5
 
-        # Current conversation context
+        # Conversation context
         self.conversation_history = []
 
-        # Parallel processing
-        self.executor = ThreadPoolExecutor(max_workers=4)
-
-        # Audio control flags
-        self.is_speaking = False
-        self.should_stop_audio = False
-        self.audio_lock = threading.Lock()
-        self.audio_process = None
-        self.current_audio_file = None
-
-        # Interrupt detection - IMPROVED
-        self.interrupt_detected = False
-        self.interrupt_thread = None
+        # Threading
+        self.executor = ThreadPoolExecutor(max_workers=3)
 
         # Initialize tools
         self.toolbox = ToolBox()
-
-        # Add memory tools
         self.add_memory_tools()
 
-        # System prompt - ENHANCED
+        # FIXED: Short, clear system prompt
         self.system_prompt = self.build_system_prompt()
 
         self.print_welcome()
 
-    def ask_user_name(self):
-        """Ask for user's name on first run"""
-        print("\n" + "=" * 70)
-        print("👋 Hi! I'm your new AI assistant!")
-        name = input("What should I call you? (or press Enter for 'friend'): ").strip()
-        return name if name else "friend"
-
     def add_memory_tools(self):
-        """Add memory-related tools to toolbox"""
+        """Add memory tools to toolbox"""
         self.toolbox.tools.update(
             {
                 "remember_fact": self.memory.add_fact,
@@ -129,89 +122,48 @@ class IntelligentAssistant:
         )
 
     def build_system_prompt(self):
-        """Build system prompt with user context - ENHANCED"""
-        user_name = self.memory.get_preference("name", "friend")
-        context = self.memory.build_context_summary()
+        """Build system prompt - COMPLETELY REWRITTEN (MINIMAL & DIRECT)"""
 
-        # Get current date for context
+        user_name = self.memory.preferences.get("name", "friend")
         current_date = datetime.datetime.now().strftime("%B %d, %Y")
 
-        base = f"""You are an intelligent voice assistant talking to {user_name}. You have memory and can remember things across conversations.
+        # FIXED: SUPER SHORT PROMPT - No verbosity!
+        prompt = f"""You are a helpful AI assistant for {user_name}. Date: {current_date}
 
-CURRENT DATE: {current_date}
+CRITICAL RULES:
+1. Keep responses EXTREMELY SHORT (1-2 sentences max)
+2. When opening apps: Just say "Opening [app]" - nothing else
+3. When creating files: Just say "Creating file" then "Done"
+4. NO greetings like "Master", "Sure thing", etc
+5. Be direct and minimal
 
-CURRENT CONTEXT:
-{context}
+TOOL FORMAT:
+Use ONE LINE per tool: TOOL: function_name(param1, param2)
 
-CRITICAL RULES FOR TOOL USAGE:
-1. When creating files, ALWAYS use this EXACT format:
-   TOOL: create_file("filename.txt", "content goes here")
-   
-2. NEVER include parameter names like "content=" in the tool call
-   ❌ WRONG: TOOL: create_file("test.txt", content="hello")
-   ✅ CORRECT: TOOL: create_file("test.txt", "hello")
-
-3. For multi-line content, keep it on one line or use \\n:
-   TOOL: create_file("note.txt", "Line 1\\nLine 2\\nLine 3")
-
-4. Before creating/editing files, ALWAYS check what exists first:
-   TOOL: list_files(".")
-   Then tell user what you found, THEN create the file.
-
-5. When searching files or web, use the appropriate tool:
-   - search_files(directory, pattern) - find files by name
-   - web_search(query) - search internet
-   - read_file(filepath) - read existing file
-
-6. For opening apps on Windows, use exact names:
-   TOOL: open_app("notepad")
-   TOOL: open_app("chrome")
-   TOOL: open_app("explorer")
-
-IMPORTANT: Be conversational and natural. Keep responses concise for voice (2-3 sentences usually).
-
-Available tools:
-{self.toolbox.get_tool_descriptions()}
-
-TOOL USAGE EXAMPLES:
-
-User: "Create a file called test.txt with hello world"
-You: Let me check what's in the current folder first.
-TOOL: list_files(".")
-[After seeing results]
-You: TOOL: create_file("test.txt", "hello world")
-Then: "Created test.txt with your message!"
-
-User: "What files are in my documents?"
-You: TOOL: list_files("C:\\Users\\{user_name}\\Documents")
-Then: [Summarize the files found]
-
-User: "Search for recent AI news"
-You: TOOL: web_search("latest AI news 2025")
-Then: [Summarize search results]
-
-User: "Remember I like pizza"
-You: TOOL: remember_fact("interests", "loves pizza")
-Then: "Got it, I'll remember you love pizza!"
-
+Examples:
 User: "Open notepad"
-You: TOOL: open_app("notepad")
-Then: "Opening Notepad now!"
+You: Opening Notepad. TOOL: open_app("notepad")
 
-Remember: Address user as {user_name}, be friendly, and ALWAYS double-check your tool syntax!
-"""
+User: "Create test.txt with hello"
+You: Creating file. TOOL: write_file("test.txt", "hello")
 
-        personalities = {
-            "friendly": "\n\nPersonality: Be warm, helpful, and conversational - like a close friend.",
-            "professional": "\n\nPersonality: Be efficient, precise, and professional.",
-            "witty": "\n\nPersonality: Be clever and fun, but still helpful!",
-            "minimalist": "\n\nPersonality: Be brief and to-the-point.",
-        }
+User: "Open chrome and search Python"
+You: Opening Chrome and searching. TOOL: open_app("chrome")
+TOOL: google_search("Python")
 
-        return base + personalities.get(self.personality, personalities["friendly"])
+AVAILABLE TOOLS:
+write_file(path, content), read_file(path), list_files(dir), rename_file(old, new), delete_file(path)
+google_search(query), open_url(url), fetch_webpage(url)
+open_app(name), run_command(cmd), system_info()
+add_task(task), get_tasks(), complete_task(id)
+calculate(expr), get_current_time(), get_current_date()
+
+Remember: MINIMAL responses only. No chatter."""
+
+        return prompt
 
     def find_voice_model(self):
-        """Find available voice model"""
+        """Find Piper voice model"""
         models_dir = Path("piper_models")
 
         if models_dir.exists():
@@ -227,38 +179,96 @@ Remember: Address user as {user_name}, be friendly, and ALWAYS double-check your
 
     def print_welcome(self):
         """Print welcome message"""
-        user_name = self.memory.get_preference("name", "friend")
-
         print("\n" + "=" * 70)
-        print("🤖 INTELLIGENT VOICE ASSISTANT - COMPLETELY FIXED VERSION")
-        print("=" * 70)
-        print(f"👤 User: {user_name}")
-        print(f"🧠 AI Model: {self.ollama_model}")
-        print(f"🎭 Personality: {self.personality.title()}")
-        print(
-            f"🎙️ Voice: {Path(self.voice_model_path).stem if self.voice_model_path else 'Not found'}"
-        )
-        print(f"💾 Session: {self.session_id}")
-        print(f"🛠️ Tools: {len(self.toolbox.tools)}")
+        print("     🤖 AI ASSISTANT - READY")
         print("=" * 70)
 
-        # Show stored context
+        user_name = self.memory.preferences.get("name", "friend")
+        print(f"👋 User: {user_name}")
+        print(f"🧠 Model: {self.ollama_model}")
+        print(f"🔊 Voice: {'Enabled' if self.voice_model_path else 'Text-only'}")
+
         tasks = self.memory.get_tasks("pending")
         if tasks:
-            print(f"\n📋 You have {len(tasks)} pending task(s)")
+            print(f"📋 Pending tasks: {len(tasks)}")
 
-        recent = self.memory.get_recent_conversations(1)
-        if recent:
-            last_time = datetime.datetime.fromisoformat(recent[0]["timestamp"])
-            print(f"💬 Last conversation: {last_time.strftime('%Y-%m-%d %H:%M')}")
+        print("\n💡 Speak clearly and wait for the beep!")
+        print("=" * 70 + "\n")
 
-        print("\n💡 NEW: I wait for you to finish speaking!")
-        print("💡 Say 'stop' or 'wait' to interrupt me instantly!")
-        print("💡 I can see and manage ALL files on your PC!")
-        print("💡 I'll check what exists before creating files!\n")
+    # ========== SPEECH RECOGNITION ==========
+
+    def listen(self, timeout=10, phrase_time_limit=20):
+        """Listen to microphone - FIXED"""
+
+        if self.wake_word_mode:
+            print(f"\n🎤 Say '{self.wake_word}' to activate...")
+        else:
+            print("\n🎤 Listening...")
+
+        self.is_listening = True
+
+        try:
+            with sr.Microphone() as source:
+                print("   ⚙️  Calibrating...")
+                self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
+
+                print("   ✅ Ready! Speak now...")
+
+                audio = self.recognizer.listen(
+                    source,
+                    timeout=timeout,
+                    phrase_time_limit=phrase_time_limit,
+                )
+
+                print("   🔄 Processing...")
+
+                try:
+                    text = self.recognizer.recognize_google(audio)
+                except sr.UnknownValueError:
+                    try:
+                        text = self.recognizer.recognize_sphinx(audio)
+                    except:
+                        raise sr.UnknownValueError
+
+                # Handle wake word
+                if self.wake_word_mode:
+                    if self.wake_word.lower() not in text.lower():
+                        print(f"   ⚠️  Wake word not detected")
+                        self.is_listening = False
+                        return None
+                    else:
+                        text = text.lower().replace(self.wake_word.lower(), "").strip()
+                        print(f"   ✅ Activated!")
+
+                        if not text:
+                            print("   🎤 Listening for command...")
+                            return self.listen(timeout=8, phrase_time_limit=15)
+
+                print(f"\n💬 You: {text}")
+                self.is_listening = False
+                return text
+
+        except sr.WaitTimeoutError:
+            self.is_listening = False
+            if not self.wake_word_mode:
+                print("   ⏱️  Timeout")
+            return None
+
+        except sr.UnknownValueError:
+            self.is_listening = False
+            if not self.wake_word_mode:
+                print("   ❌ Couldn't understand")
+            return None
+
+        except Exception as e:
+            self.is_listening = False
+            print(f"   ❌ Error: {e}")
+            return None
+
+    # ========== INTERRUPT DETECTION ==========
 
     def start_interrupt_listener(self):
-        """Start background interrupt detection - IMPROVED"""
+        """Start interrupt detection"""
         self.interrupt_detected = False
         self.interrupt_thread = threading.Thread(
             target=self._interrupt_listener_thread, daemon=True
@@ -266,40 +276,39 @@ Remember: Address user as {user_name}, be friendly, and ALWAYS double-check your
         self.interrupt_thread.start()
 
     def _interrupt_listener_thread(self):
-        """Background thread for interrupt detection - FASTER"""
+        """Background interrupt detection"""
         try:
             with sr.Microphone() as source:
-                self.recognizer.adjust_for_ambient_noise(source, duration=0.2)
+                self.recognizer.adjust_for_ambient_noise(source, duration=0.1)
 
                 while self.is_speaking and not self.interrupt_detected:
                     try:
-                        # Very short timeout for instant detection
                         audio = self.recognizer.listen(
-                            source, timeout=0.5, phrase_time_limit=2
+                            source, timeout=0.2, phrase_time_limit=1.0
                         )
 
                         try:
                             text = self.recognizer.recognize_google(audio).lower()
 
-                            # Check for stop/wait commands
-                            if any(
-                                word in text
-                                for word in [
-                                    "stop",
-                                    "shut up",
-                                    "quiet",
-                                    "wait",
-                                    "pause",
-                                ]
-                            ):
+                            interrupt_words = [
+                                "stop",
+                                "shut up",
+                                "quiet",
+                                "pause",
+                                "wait",
+                                "hold on",
+                                "hold",
+                            ]
+
+                            if any(word in text for word in interrupt_words):
                                 self.interrupt_detected = True
 
-                                if "wait" in text or "pause" in text:
+                                if any(w in text for w in ["wait", "pause", "hold"]):
                                     self.is_paused = True
-                                    print("\n⏸️ PAUSED (say 'continue' to resume)")
+                                    print("\n   ⏸️  PAUSED")
                                 else:
                                     self.stop_requested = True
-                                    print("\n🛑 STOPPED")
+                                    print("\n   ⏹️  STOPPED")
 
                                 self.stop_audio()
                                 break
@@ -309,18 +318,18 @@ Remember: Address user as {user_name}, be friendly, and ALWAYS double-check your
 
                     except sr.WaitTimeoutError:
                         continue
+
                     except Exception:
                         continue
 
         except Exception as e:
-            pass
+            print(f"   ⚠️  Interrupt error: {e}")
 
     def stop_audio(self):
-        """Stop currently playing audio - INSTANT"""
+        """Stop audio playback immediately"""
         with self.audio_lock:
             self.should_stop_audio = True
 
-            # Kill audio playback process immediately
             if self.audio_process and self.audio_process.poll() is None:
                 try:
                     self.audio_process.terminate()
@@ -333,330 +342,97 @@ Remember: Address user as {user_name}, be friendly, and ALWAYS double-check your
 
             self.is_speaking = False
 
-    def listen(self, timeout=10):
-        """Listen to microphone - IMPROVED to wait for complete speech"""
-
-        if self.wake_word_mode:
-            print(f"\n💤 Say '{self.wake_word}' to activate...")
-        else:
-            print("\n🎤 Listening... (speak now, I'll wait for you to finish)")
-
-        self.is_listening = True
-
-        try:
-            with sr.Microphone() as source:
-                # Adjust for ambient noise
-                print("🔧 Calibrating microphone...")
-                self.recognizer.adjust_for_ambient_noise(source, duration=1.0)
-
-                print("✅ Ready! Speak now...")
-
-                # Listen with longer phrase time limit to get complete speech
-                audio = self.recognizer.listen(
-                    source,
-                    timeout=timeout,
-                    phrase_time_limit=20,  # Allow up to 20 seconds of continuous speech
-                )
-
-                print("🔄 Processing your speech...")
-                text = self.recognizer.recognize_google(audio)
-
-                # Wake word check
-                if self.wake_word_mode:
-                    if self.wake_word.lower() not in text.lower():
-                        print(f"💤 Wake word not detected, ignoring...")
-                        self.is_listening = False
-                        return None
-                    else:
-                        # Remove wake word from text
-                        text = text.lower().replace(self.wake_word.lower(), "").strip()
-                        print(f"✅ Activated! Processing: {text}")
-                        if not text:
-                            return self.listen(timeout=5)
-
-                print(f"\n✅ You said: {text}")
-                self.is_listening = False
-                return text
-
-        except sr.WaitTimeoutError:
-            self.is_listening = False
-            if not self.wake_word_mode:
-                print("⏱️ No speech detected (timeout)")
-            return None
-        except sr.UnknownValueError:
-            self.is_listening = False
-            if not self.wake_word_mode:
-                print("❌ Couldn't understand what you said")
-            return None
-        except Exception as e:
-            self.is_listening = False
-            print(f"❌ Error: {e}")
-            return None
-
-    def process_with_ai(self, user_message):
-        """Process message with AI and memory - ENHANCED"""
-        print(f"\n🧠 Thinking...")
-
-        # Reset stop flag for new query
-        if self.stop_requested:
-            self.stop_requested = False
-
-        try:
-            # Build messages with system prompt and context
-            messages = [{"role": "system", "content": self.system_prompt}]
-
-            # Add recent conversation history (last 4 exchanges)
-            messages.extend(self.conversation_history[-8:])
-
-            # Add current message
-            messages.append({"role": "user", "content": user_message})
-
-            # Call Ollama with increased timeout
-            print("🤖 Asking AI...")
-            response = requests.post(
-                "http://localhost:11434/api/chat",
-                json={
-                    "model": self.ollama_model,
-                    "messages": messages,
-                    "stream": False,
-                },
-                timeout=300,
-            )
-
-            if response.status_code != 200:
-                return "Sorry, I'm having trouble thinking right now."
-
-            result = response.json()
-            ai_response = result["message"]["content"]
-
-            print(f"💭 AI Response: {ai_response[:100]}...")
-
-            # Check for tool usage - ENHANCED PARSING
-            tools_used = []
-            if "TOOL:" in ai_response:
-                print("🔧 AI wants to use tools...")
-                ai_response, tools_used = self.execute_tools_from_response(ai_response)
-
-            # Update conversation history
-            self.conversation_history.append({"role": "user", "content": user_message})
-            self.conversation_history.append(
-                {"role": "assistant", "content": ai_response}
-            )
-
-            # Save to persistent memory
-            self.memory.save_conversation(
-                user_message, ai_response, tools_used, self.session_id
-            )
-
-            # Keep in-memory history manageable
-            if len(self.conversation_history) > 16:
-                self.conversation_history = self.conversation_history[-16:]
-
-            return ai_response
-
-        except requests.exceptions.ConnectionError:
-            return "I can't connect to my brain. Is Ollama running? Start it with 'ollama serve'"
-        except requests.exceptions.Timeout:
-            return "Sorry, I'm thinking too slowly. Try asking something simpler."
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            import traceback
-
-            traceback.print_exc()
-            return "Sorry, something went wrong in my brain."
-
-    def execute_tools_from_response(self, ai_response):
-        """Execute tool calls from AI response - COMPLETELY FIXED PARSING"""
-        tools_used = []
-
-        try:
-            # Find all TOOL: calls - IMPROVED REGEX
-            tool_pattern = r"TOOL:\s*(\w+)\((.*?)\)(?=\s|$|TOOL:)"
-            matches = re.findall(tool_pattern, ai_response, re.DOTALL)
-
-            print(f"🔍 Found {len(matches)} tool call(s)")
-
-            results = []
-
-            for tool_name, params_str in matches:
-                print(f"\n🔧 Parsing tool: {tool_name}")
-                print(f"📝 Raw params: {params_str[:100]}...")
-
-                # IMPROVED PARAMETER PARSING
-                params = []
-                if params_str.strip():
-                    current_param = ""
-                    in_quotes = False
-                    quote_char = None
-                    paren_depth = 0
-
-                    for i, char in enumerate(params_str):
-                        # Handle quotes
-                        if char in ['"', "'"] and (i == 0 or params_str[i - 1] != "\\"):
-                            if not in_quotes:
-                                in_quotes = True
-                                quote_char = char
-                            elif char == quote_char:
-                                in_quotes = False
-                                quote_char = None
-
-                        # Handle parentheses
-                        elif char == "(" and not in_quotes:
-                            paren_depth += 1
-                        elif char == ")" and not in_quotes:
-                            paren_depth -= 1
-
-                        # Handle comma separation
-                        elif char == "," and not in_quotes and paren_depth == 0:
-                            if current_param.strip():
-                                # Clean parameter - remove quotes and whitespace
-                                clean = current_param.strip()
-                                # Remove outer quotes only
-                                if clean.startswith('"') and clean.endswith('"'):
-                                    clean = clean[1:-1]
-                                elif clean.startswith("'") and clean.endswith("'"):
-                                    clean = clean[1:-1]
-                                # Remove any "content=" or "filepath=" prefixes
-                                clean = re.sub(
-                                    r"^(content|filepath|text|path|query|name)\s*=\s*",
-                                    "",
-                                    clean,
-                                )
-                                params.append(clean)
-                            current_param = ""
-                            continue
-
-                        current_param += char
-
-                    # Add last parameter
-                    if current_param.strip():
-                        clean = current_param.strip()
-                        if clean.startswith('"') and clean.endswith('"'):
-                            clean = clean[1:-1]
-                        elif clean.startswith("'") and clean.endswith("'"):
-                            clean = clean[1:-1]
-                        clean = re.sub(
-                            r"^(content|filepath|text|path|query|name)\s*=\s*",
-                            "",
-                            clean,
-                        )
-                        params.append(clean)
-
-                print(f"✅ Parsed {len(params)} parameter(s):")
-                for idx, p in enumerate(params):
-                    print(f"   [{idx}]: {p[:80]}...")
-
-                # Execute tool
-                print(f"⚙️ Executing: {tool_name} with {len(params)} params")
-                result = self.toolbox.execute_tool(tool_name, params)
-
-                tools_used.append(
-                    {"tool": tool_name, "params": params, "success": result["success"]}
-                )
-
-                if result["success"]:
-                    results.append(f"✅ {tool_name}: {result['output'][:300]}")
-                    print(f"✅ SUCCESS: {result['output'][:200]}")
-                else:
-                    results.append(f"❌ {tool_name}: {result['output'][:300]}")
-                    print(f"❌ FAILED: {result['output']}")
-
-            # Clean response - remove TOOL: lines
-            clean_response = re.sub(
-                r"TOOL:.*?(?=\n|$)", "", ai_response, flags=re.DOTALL
-            ).strip()
-
-            # Add tool results to response
-            if results:
-                result_summary = "\n\n" + "\n".join(results)
-                return clean_response + result_summary, tools_used
-
-            return ai_response, tools_used
-
-        except Exception as e:
-            print(f"❌ Tool execution error: {e}")
-            import traceback
-
-            traceback.print_exc()
-            return ai_response, tools_used
+    # ========== TEXT-TO-SPEECH ==========
 
     def speak(self, text):
-        """Convert text to speech with interrupt support"""
+        """Convert text to speech - FIXED"""
+
+        # Always print
+        print(f"\n🤖 Assistant: {text}\n")
+
+        # Skip TTS if no model
         if not self.voice_model_path:
-            print("❌ No voice model")
+            return True
+
+        try:
+            self.should_stop_audio = False
+            self.interrupt_detected = False
+            self.pending_response = text
+
+            future = self.executor.submit(self._speak_thread, text)
+            return True
+
+        except Exception as e:
+            print(f"   ⚠️  Speech error: {e}")
             return False
 
-        # Reset stop flag
-        self.should_stop_audio = False
-        self.interrupt_detected = False
-
-        # Store response for pause/resume
-        self.pending_response = text
-
-        # Generate and play in thread
-        self.executor.submit(self._speak_thread, text)
-        return True
-
     def _speak_thread(self, text):
-        """TTS generation and playback thread"""
+        """TTS generation thread"""
         try:
-            print(f"\n💬 Assistant: {text}\n")
-
             with self.audio_lock:
                 if self.should_stop_audio:
                     return
                 self.is_speaking = True
 
-            # Start interrupt listener
-            self.start_interrupt_listener()
+            try:
+                self.start_interrupt_listener()
+            except:
+                pass
 
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             output_file = self.output_dir / f"response_{timestamp}.wav"
             self.current_audio_file = output_file
 
-            # Generate TTS
-            print("🎙️ Generating speech...")
+            print("   🔊 Speaking...")
+
             cmd = [
                 "piper",
                 "--model",
                 self.voice_model_path,
                 "--output_file",
                 str(output_file),
-                "--length_scale",
-                "0.90",
-                "--sentence_silence",
-                "0.08",
+                "--length-scale",
+                "0.95",
+                "--sentence-silence",
+                "0.1",
             ]
 
-            result = subprocess.run(
-                cmd,
-                input=text,
-                text=True,
-                capture_output=True,
-                encoding="utf-8",
-                timeout=90,
-            )
+            try:
+                result = subprocess.run(
+                    cmd,
+                    input=text,
+                    text=True,
+                    capture_output=True,
+                    encoding="utf-8",
+                    timeout=20,
+                )
 
-            # Check if stopped during generation
-            if self.should_stop_audio:
-                self.is_speaking = False
-                return
+                if self.should_stop_audio:
+                    return
 
-            if result.returncode == 0 and output_file.exists():
-                print("🔊 Playing...")
-                self._play_audio_with_interrupt(str(output_file))
-            else:
-                print(f"❌ TTS failed: {result.stderr}")
+                if result.returncode == 0 and output_file.exists():
+                    try:
+                        self._play_audio_with_interrupt(str(output_file))
+                    except Exception as e:
+                        print(f"   ❌ Playback failed: {e}")
+
+            except subprocess.TimeoutExpired:
+                print("   ❌ TTS timeout")
+            except FileNotFoundError:
+                print("   ❌ Piper not found")
+            except Exception as e:
+                print(f"   ❌ TTS error: {e}")
 
         except Exception as e:
-            print(f"❌ Speech error: {e}")
+            print(f"   ❌ Speech error: {e}")
+
         finally:
             self.is_speaking = False
             if not self.is_paused:
                 self.pending_response = ""
 
     def _play_audio_with_interrupt(self, audio_file):
-        """Play audio with instant interrupt detection"""
+        """Play audio with interrupt support"""
         try:
             wf = wave.open(audio_file, "rb")
             p = pyaudio.PyAudio()
@@ -671,7 +447,6 @@ Remember: Address user as {user_name}, be friendly, and ALWAYS double-check your
             chunk = 1024
             data = wf.readframes(chunk)
 
-            # Play with interrupt checking
             while data and not self.should_stop_audio and not self.interrupt_detected:
                 stream.write(data)
                 data = wf.readframes(chunk)
@@ -682,117 +457,542 @@ Remember: Address user as {user_name}, be friendly, and ALWAYS double-check your
             wf.close()
 
             if not self.should_stop_audio and not self.interrupt_detected:
-                print("✅ Done speaking\n")
+                print("   ✅ Done\n")
 
         except Exception as e:
-            print(f"❌ Playback error: {e}")
+            print(f"   ❌ Playback error: {e}")
 
-    def run(self):
-        """Main conversation loop"""
-        print("=" * 70 + "\n")
+    # ========== AI PROCESSING (COMPLETELY FIXED) ==========
 
-        # Personalized greeting
-        user_name = self.memory.get_preference("name", "friend")
-        greeting = f"Hey {user_name}! I'm ready to help. What can I do for you?"
+    def process_with_ai(self, user_message):
+        """Process with AI - FIXED for speed and accuracy"""
 
-        if self.wake_word_mode:
-            greeting = f"Hey {user_name}! Say '{self.wake_word}' when you need me!"
+        print(f"🧠 Thinking...")
 
-        print(f"💬 Assistant: {greeting}")
-        self.speak(greeting)
+        if self.stop_requested:
+            self.stop_requested = False
 
         try:
-            while True:
-                # Wait for speech to finish (unless paused)
-                while self.is_speaking and not self.is_paused:
-                    time.sleep(0.1)
+            # Build messages
+            messages = [{"role": "system", "content": self.system_prompt}]
 
-                # Don't listen while speaking
-                if self.is_speaking:
-                    continue
+            # Only last 4 exchanges
+            recent_history = self.conversation_history[-8:]
+            messages.extend(recent_history)
 
-                user_text = self.listen()
+            # Add current message
+            messages.append({"role": "user", "content": user_message})
 
-                if user_text is None:
-                    continue
+            print("   ⚡ Generating...")
 
-                # Handle continue command
-                if "continue" in user_text.lower() and self.is_paused:
-                    self.is_paused = False
-                    if self.pending_response:
-                        print("▶️ Resuming...")
-                        self.speak(self.pending_response)
-                    continue
+            try:
+                response = requests.post(
+                    "http://localhost:11434/api/chat",
+                    json={
+                        "model": self.ollama_model,
+                        "messages": messages,
+                        "stream": False,
+                        "options": {
+                            "temperature": 0.6,  # More focused
+                            "top_p": 0.85,
+                            "num_predict": 150,  # Shorter responses
+                            "stop": ["User:", "Human:", "\n\n\n", "Master"],
+                        },
+                    },
+                    timeout=25,
+                )
 
-                # Exit commands
-                exit_words = ["exit", "quit", "goodbye", "bye"]
-                if any(word == user_text.lower() for word in exit_words):
-                    farewell = (
-                        f"Goodbye {user_name}! I'll remember everything for next time!"
-                    )
-                    print(f"💬 Assistant: {farewell}")
-                    self.speak(farewell)
-                    time.sleep(3)
-                    break
+            except requests.exceptions.ConnectionError:
+                return "❌ Ollama not running. Start with: ollama serve"
 
-                # Process with AI
-                ai_response = self.process_with_ai(user_text)
+            except requests.exceptions.Timeout:
+                return "❌ Ollama timeout. Try again."
 
-                # Speak response (unless stopped)
-                if not self.stop_requested:
-                    self.speak(ai_response)
+            if response.status_code != 200:
+                return f"❌ Ollama error: {response.status_code}"
+
+            result = response.json()
+            ai_response = result.get("message", {}).get("content", "")
+
+            if not ai_response or len(ai_response.strip()) < 2:
+                return "❌ Empty response. Try again."
+
+            print(f"   ✅ Response ({len(ai_response)} chars)")
+
+            # FIXED: Execute tools if present
+            tools_used = []
+            if "TOOL:" in ai_response:
+                print("   🛠️  Executing tools...")
+                ai_response, tools_used = self.execute_tools_from_response(ai_response)
+
+            # Update history
+            self.conversation_history.append({"role": "user", "content": user_message})
+            self.conversation_history.append(
+                {"role": "assistant", "content": ai_response}
+            )
+
+            # Save to memory
+            self.memory.save_conversation(
+                user_message, ai_response, tools_used, self.session_id
+            )
+
+            # Keep history short
+            if len(self.conversation_history) > 12:
+                self.conversation_history = self.conversation_history[-12:]
+
+            return ai_response
+
+        except Exception as e:
+            print(f"   ❌ Error: {e}")
+            return "❌ Something went wrong."
+
+    # ========== TOOL EXECUTION (COMPLETELY REWRITTEN - FIXED!) ==========
+
+    def execute_tools_from_response(self, ai_response):
+        """Execute tools from AI response - FIXED"""
+
+        tools_used = []
+
+        try:
+            # FIXED: Better pattern that handles TOOL: lines
+            tool_pattern = r"TOOL:\s*(\w+)\s*\((.*?)\)"
+
+            matches = re.findall(tool_pattern, ai_response, re.DOTALL)
+
+            if not matches:
+                print("   ⚠️  No valid tool calls found")
+                return ai_response, tools_used
+
+            print(f"   ✅ Found {len(matches)} tool(s)")
+
+            results = []
+
+            for tool_name, params_str in matches:
+                print(f"\n   🔧 {tool_name}")
+                print(f"      Raw params: {params_str[:50]}")
+
+                # Parse parameters
+                params = self.parse_tool_parameters(params_str)
+
+                print(f"      Parsed params: {params}")
+
+                # Execute tool
+                result = self.toolbox.execute_tool(tool_name, params)
+
+                # Store result
+                tools_used.append(
+                    {
+                        "tool": tool_name,
+                        "params": params[:2],
+                        "success": result["success"],
+                        "output": result["output"][:200],
+                    }
+                )
+
+                if result["success"]:
+                    output_preview = result["output"][:300]
+                    results.append(f"✅ {output_preview}")
+                    print(f"      ✅ Success")
                 else:
-                    self.stop_requested = False
+                    results.append(f"❌ {result['output'][:300]}")
+                    print(f"      ❌ Failed: {result['output'][:80]}")
 
-                print("-" * 70 + "\n")
+            # Remove TOOL: lines from response
+            clean_response = re.sub(r"TOOL:.*?\)", "", ai_response, flags=re.DOTALL)
+            clean_response = re.sub(r"\n\n+", "\n\n", clean_response).strip()
+
+            # Add tool results
+            if results:
+                result_text = "\n\n" + "\n".join(results)
+
+                if clean_response:
+                    final_response = f"{clean_response}{result_text}"
+                else:
+                    final_response = result_text.strip()
+
+                return final_response, tools_used
+
+            return clean_response if clean_response else "Done.", tools_used
+
+        except Exception as e:
+            print(f"   ❌ Tool execution error: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return ai_response, tools_used
+
+    def parse_tool_parameters(self, params_str):
+        """Parse tool parameters - COMPLETELY FIXED"""
+
+        if not params_str or not params_str.strip():
+            return []
+
+        params = []
+        params_str = params_str.strip()
+
+        # Handle simple cases first
+        if '"' not in params_str and "'" not in params_str:
+            # No quotes - just split by comma
+            parts = [p.strip() for p in params_str.split(",")]
+            return [p for p in parts if p]
+
+        # Complex parsing for quoted strings
+        current_param = ""
+        in_quotes = False
+        quote_char = None
+        depth = 0
+
+        i = 0
+        while i < len(params_str):
+            char = params_str[i]
+
+            # Handle escape sequences
+            if char == "\\" and i + 1 < len(params_str):
+                current_param += params_str[i : i + 2]
+                i += 2
+                continue
+
+            # Handle quotes
+            if char in ['"', "'"] and (i == 0 or params_str[i - 1] != "\\"):
+                if not in_quotes:
+                    in_quotes = True
+                    quote_char = char
+                elif char == quote_char:
+                    in_quotes = False
+                    quote_char = None
+                current_param += char
+
+            # Handle nested structures
+            elif char in "([{" and not in_quotes:
+                depth += 1
+                current_param += char
+
+            elif char in ")]}" and not in_quotes:
+                depth -= 1
+                current_param += char
+
+            # Handle comma separator
+            elif char == "," and not in_quotes and depth == 0:
+                if current_param.strip():
+                    params.append(self.clean_parameter(current_param.strip()))
+                current_param = ""
+                i += 1
+                continue
+
+            else:
+                current_param += char
+
+            i += 1
+
+        # Add last parameter
+        if current_param.strip():
+            params.append(self.clean_parameter(current_param.strip()))
+
+        return params
+
+    def clean_parameter(self, param):
+        """Clean a single parameter - IMPROVED"""
+
+        param = param.strip()
+
+        # Remove parameter names (path=value → value)
+        param = re.sub(r"^(\w+)\s*=\s*", "", param, flags=re.IGNORECASE)
+
+        # Remove outer quotes
+        param = param.strip()
+        if len(param) >= 2:
+            if (param[0] == '"' and param[-1] == '"') or (
+                param[0] == "'" and param[-1] == "'"
+            ):
+                param = param[1:-1]
+
+        # Unescape
+        param = param.replace("\\n", "\n")
+        param = param.replace("\\t", "\t")
+        param = param.replace("\\r", "\r")
+        param = param.replace('\\"', '"')
+        param = param.replace("\\'", "'")
+        param = param.replace("\\\\", "\\")
+
+        return param
+
+    # ========== MAIN CONVERSATION LOOP (CRASH-PROOF) ==========
+
+    def run(self):
+        """Main conversation loop - COMPLETELY FIXED"""
+
+        print("=" * 70 + "\n")
+
+        # Initial greeting
+        user_name = self.memory.preferences.get("name", "friend")
+
+        greeting = f"Hello {user_name}! Ready to help. What do you need?"
+
+        if self.wake_word_mode:
+            greeting = f"Hello {user_name}! Say '{self.wake_word}' when you need me."
+
+        print(f"🤖 Assistant: {greeting}\n")
+
+        try:
+            self.speak(greeting)
+        except:
+            pass
+
+        conversation_count = 0
+        consecutive_errors = 0
+        max_consecutive_errors = 3
+
+        try:
+            while self.conversation_active:
+                try:
+                    # Wait for speech to finish (with timeout)
+                    wait_count = 0
+                    while self.is_speaking and not self.is_paused:
+                        time.sleep(0.1)
+                        wait_count += 1
+
+                        if wait_count > 300:  # 30 second timeout
+                            print("   ⚠️  Timeout, continuing...")
+                            self.is_speaking = False
+                            break
+
+                    # Don't listen while paused
+                    if self.is_paused:
+                        time.sleep(0.5)
+                        continue
+
+                    # Listen for input
+                    print(f"\n{'='*70}")
+                    print(f"💬 Turn #{conversation_count + 1}")
+                    print("=" * 70)
+
+                    user_text = self.listen()
+
+                    # Handle no input
+                    if user_text is None:
+                        continue
+
+                    # Reset error counter
+                    consecutive_errors = 0
+
+                    # Handle continue command
+                    if self.is_paused and "continue" in user_text.lower():
+                        self.is_paused = False
+                        if self.pending_response:
+                            print("   ▶️  Resuming...")
+                            try:
+                                self.speak(self.pending_response)
+                            except:
+                                pass
+                        continue
+
+                    # Exit detection
+                    exit_phrases = [
+                        "exit",
+                        "quit",
+                        "goodbye",
+                        "bye",
+                        "good bye",
+                        "stop assistant",
+                        "shut down",
+                        "shutdown",
+                    ]
+
+                    if any(phrase in user_text.lower() for phrase in exit_phrases):
+                        farewell = f"Goodbye {user_name}!"
+                        print(f"\n🤖 Assistant: {farewell}\n")
+
+                        try:
+                            self.speak(farewell)
+                            time.sleep(2)
+                        except:
+                            pass
+
+                        break
+
+                    # Process with AI
+                    ai_response = self.process_with_ai(user_text)
+
+                    # Check response validity
+                    if not ai_response or ai_response.startswith("❌"):
+                        consecutive_errors += 1
+                        print(
+                            f"   ⚠️  Error {consecutive_errors}/{max_consecutive_errors}"
+                        )
+
+                        if consecutive_errors >= max_consecutive_errors:
+                            print("\n❌ Too many errors. Check Ollama.")
+                            break
+
+                        print(f"\n{ai_response}\n")
+                        continue
+
+                    # Speak response
+                    if not self.stop_requested:
+                        try:
+                            self.speak(ai_response)
+                        except Exception as e:
+                            print(f"   ⚠️  Voice error: {e}")
+                    else:
+                        print("   ⏹️  Skipped (interrupted)")
+                        self.stop_requested = False
+
+                    conversation_count += 1
+                    print("-" * 70)
+
+                except KeyboardInterrupt:
+                    raise
+
+                except Exception as e:
+                    consecutive_errors += 1
+                    print(f"\n   ❌ Error: {e}")
+
+                    if consecutive_errors >= max_consecutive_errors:
+                        print("\n❌ Too many errors. Exiting...")
+                        break
+
+                    print(
+                        f"   🔄 Recovering... ({consecutive_errors}/{max_consecutive_errors})"
+                    )
+                    time.sleep(1)
 
         except KeyboardInterrupt:
-            print("\n\n👋 Stopped by user")
+            print("\n\n⏹️  Stopped (Ctrl+C)")
             self.stop_audio()
+
         except Exception as e:
             print(f"\n❌ Fatal error: {e}")
             import traceback
 
             traceback.print_exc()
 
+        finally:
+            print("\n" + "=" * 70)
+            print("🔌 Shutting down...")
+            print("💾 Conversation saved")
+            print("👋 Goodbye!")
+            print("=" * 70 + "\n")
+
+            self.conversation_active = False
+
+            try:
+                self.executor.shutdown(wait=False)
+            except:
+                pass
+
+
+# ========== ENTRY POINT ==========
+
 
 def main():
-    """Entry point"""
+    """Entry point - IMPROVED"""
     import sys
 
+    # Default settings
     model = "mistral"
     personality = "friendly"
-    user_name = None
     wake_word_mode = False
+    user_name = None
 
     # Parse arguments
-    for i, arg in enumerate(sys.argv[1:]):
+    args = sys.argv[1:]
+    i = 0
+    while i < len(args):
+        arg = args[i]
+
         if arg in ["--wake-word", "-w"]:
             wake_word_mode = True
-        elif i == 0:
-            model = arg
-        elif i == 1:
-            personality = arg
-        elif i == 2:
-            user_name = arg
 
-    print("\n🚀 Starting Enhanced Intelligent Voice Assistant...")
-    print(
-        "📌 Usage: python intelligent_assistant.py [model] [personality] [name] [--wake-word]"
-    )
-    print("📌 Personalities: friendly, professional, witty, minimalist\n")
+        elif arg.startswith("--model="):
+            model = arg.split("=", 1)[1]
 
+        elif arg.startswith("--personality="):
+            personality = arg.split("=", 1)[1]
+
+        elif arg.startswith("--name="):
+            user_name = arg.split("=", 1)[1]
+
+        elif arg in ["--help", "-h"]:
+            print(
+                """
+🤖 Intelligent Voice Assistant - Usage
+
+python intelligent_assistant.py [OPTIONS]
+
+OPTIONS:
+  --model=MODEL          Ollama model (default: mistral)
+  --personality=TYPE     Personality (default: friendly)
+  --name=NAME            Your name
+  --wake-word, -w        Enable wake word mode
+  --help, -h             Show this help
+
+EXAMPLES:
+  python intelligent_assistant.py
+  python intelligent_assistant.py --model=llama2 --name=John
+"""
+            )
+            return
+
+        i += 1
+
+    # Print startup
+    print("\n" + "=" * 70)
+    print("     🚀 STARTING AI ASSISTANT")
+    print("=" * 70)
+    print(f"🧠 Model: {model}")
+    print(f"👤 User: {user_name or 'auto-detect'}")
+    print("=" * 70)
+
+    # Check Ollama
+    print("\n🔍 Checking Ollama...")
+    try:
+        response = requests.get("http://localhost:11434/api/tags", timeout=3)
+        if response.status_code == 200:
+            print("   ✅ Ollama running")
+        else:
+            print("   ❌ Ollama not responding")
+            return
+    except:
+        print("   ❌ Ollama not running!")
+        print("   💡 Start with: ollama serve")
+        return
+
+    print("\n🎤 Checking microphone...")
+    try:
+        import speech_recognition as sr
+
+        recognizer = sr.Recognizer()
+        with sr.Microphone() as source:
+            print("   ✅ Microphone found")
+    except Exception as e:
+        print(f"   ⚠️  Microphone issue: {e}")
+
+    print("\n🔊 Checking voice...")
+    voice_found = False
+    for path in [Path("piper_models"), Path(".")]:
+        if path.exists():
+            onnx_files = list(path.glob("*.onnx"))
+            if onnx_files:
+                print(f"   ✅ Voice model found")
+                voice_found = True
+                break
+
+    if not voice_found:
+        print("   ⚠️  No voice model (text-only mode)")
+
+    print("\n" + "=" * 70)
+    print("✨ Starting assistant...")
+    print("=" * 70 + "\n")
+
+    time.sleep(1)
+
+    # Create and run
     assistant = IntelligentAssistant(
         ollama_model=model,
         personality=personality,
-        user_name=user_name,
         wake_word_mode=wake_word_mode,
+        user_name=user_name,
     )
-
-    if assistant.voice_model_path is None:
-        print("\n❌ ERROR: No voice model found!")
-        print("📁 Place .onnx model files in 'piper_models' folder")
-        return
 
     assistant.run()
 
